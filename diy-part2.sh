@@ -18,9 +18,8 @@ sed -i "s/'UTC'/'CST-8'\n        set system.@system[-1].zonename='Asia\/Shanghai
 # Set AdGuardHome as upstream DNS
 sed -i '/option resolvfile/a\        list server '\''127.0.0.1:5353'\''' package/network/services/dnsmasq/files/dhcp.conf
 
-# Create docker group
-sed -i '/system.ntp/a\\t\tgroupadd -g 1000 docker' package/base-files/files/etc/init.d/boot
+# Create docker group with correct syntax
+sed -i '/system.ntp/a\\t\tgroupadd -g 1000 docker || true' package/base-files/files/etc/init.d/boot
 
 # Change AdGuardHome listening port
-sed -i 's/0.0.0.0:53/0.0.0.0:5353/g' package/luci-app-adguardhome/root/etc/config/AdGuardHome
-sed -i 's/0.0.0.0:53/0.0.0.0:5353/g' package/adguardhome/files/init.d/AdGuardHome
+find package/ -type f -name 'AdGuardHome' -exec sed -i 's/0.0.0.0:53/0.0.0.0:5353/g' {} +
