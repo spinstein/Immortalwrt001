@@ -10,7 +10,6 @@
 # See /LICENSE for more information.
 #
 
-# 添加必要的feed源
 echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
 echo 'src-git adguardhome https://github.com/rufengsuixing/luci-app-adguardhome' >> feeds.conf.default
 echo 'src-git dockerman https://github.com/lisaac/luci-app-dockerman' >> feeds.conf.default
