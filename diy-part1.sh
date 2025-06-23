@@ -8,8 +8,8 @@
 #
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
-#
 
+# Add required packages sources
 echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
 echo 'src-git adguardhome https://github.com/rufengsuixing/luci-app-adguardhome' >> feeds.conf.default
 echo 'src-git dockerman https://github.com/lisaac/luci-app-dockerman' >> feeds.conf.default
