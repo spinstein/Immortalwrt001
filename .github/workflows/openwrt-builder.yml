@@ -97,21 +97,25 @@ jobs:
         
         # Enable ccache for faster builds
         echo "CONFIG_CCACHE=y" >> .config
+        
+        # Apply J4125 kernel config
+        echo "CONFIG_HZ=1000" >> .config
+        echo "CONFIG_SLAB=y" >> .config
 
     - name: Download packages
       run: |
         cd openwrt
         export CC="ccache gcc"
         export CXX="ccache g++"
-        make download -j$(nproc)
+        make download -j$(nproc) || make download -j1 V=s
 
     - name: Compile the firmware
       run: |
         cd openwrt
         export CC="ccache gcc"
         export CXX="ccache g++"
-        echo "Using $(nproc) threads for compilation"
-        make -j$(nproc) V=s
+        echo "Using $(($(nproc) + 1)) threads for compilation"
+        make -j$(($(nproc) + 1)) V=s || make -j1 V=s
 
     - name: Show ccache statistics
       run: ccache -s
