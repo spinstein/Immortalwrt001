@@ -22,6 +22,7 @@ env:
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
   CACHE_DIR: openwrt_cache
+  CCACHE_DIR: ${{ github.workspace }}/openwrt_cache/ccache
 
 jobs:
   build:
@@ -37,6 +38,8 @@ jobs:
       with:
         path: ${{ env.CACHE_DIR }}
         key: ${{ runner.os }}-immortalwrt-${{ hashFiles('**/.config') }}-${{ hashFiles('**/feeds.conf.default') }}
+        restore-keys: |
+          ${{ runner.os }}-immortalwrt-
 
     - name: Initialization environment
       env:
@@ -91,18 +94,30 @@ jobs:
         chmod +x $DIY_P2_SH
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
+        
+        # Enable ccache for faster builds
+        echo "CONFIG_CCACHE=y" >> .config
 
     - name: Download packages
-      run: cd openwrt && make download -j8
+      run: |
+        cd openwrt
+        export CC="ccache gcc"
+        export CXX="ccache g++"
+        make download -j$(nproc)
 
     - name: Compile the firmware
       run: |
         cd openwrt
+        export CC="ccache gcc"
+        export CXX="ccache g++"
         echo -e "$(nproc) thread build"
         make -j$(($(nproc) + 1)) V=s || make -j1 V=s
+
+    - name: Show ccache statistics
+      run: ccache -s
 
     - name: Upload firmware
       uses: actions/upload-artifact@v4
       with:
-        name: OpenWrt_Firmware
+        name: ImmortalWrt_J4125_Firmware
         path: openwrt/bin/targets/*/*
