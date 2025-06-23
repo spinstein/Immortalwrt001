@@ -11,9 +11,8 @@ on:
         type: boolean
 
 env:
-  # ... 保持原有环境变量不变 ...
-  REPO_URL: https://github.com/coolsnowwolf/lede
-  REPO_BRANCH: master
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_BRANCH: openwrt-21.02
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: .config
   DIY_P1_SH: diy-part1.sh
@@ -22,14 +21,22 @@ env:
   UPLOAD_FIRMWARE: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  CACHE_DIR: openwrt_cache
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+    timeout-minutes: 180
 
     steps:
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v4
+
+    - name: Cache build environment
+      uses: actions/cache@v3
+      with:
+        path: ${{ env.CACHE_DIR }}
+        key: ${{ runner.os }}-immortalwrt-${{ hashFiles('**/.config') }}-${{ hashFiles('**/feeds.conf.default') }}
 
     - name: Initialization environment
       env:
@@ -45,23 +52,25 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
+        # Setup ccache
+        mkdir -p ${{ env.CACHE_DIR }}/ccache
+        echo "max_size = 2.0G" > ${{ env.CACHE_DIR }}/ccache/ccache.conf
+
     - name: Clone source code
       working-directory: /workdir
       run: |
         df -hT $PWD
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        git clone --depth=1 $REPO_URL -b $REPO_BRANCH openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    # ========== 新增的 SSH 调试步骤 ==========
     - name: Setup SSH debug session
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug == 'true' }}
       uses: mxschmitt/action-tmate@v3
       with:
-        limit-access-to-actor: true  # 仅仓库所有者可访问
-        timeout: 30  # 30分钟超时
-        ports: 2222  # 自定义SSH端口
+        limit-access-to-actor: true
+        timeout: 30
+        ports: 2222
 
-    # ========== 原有步骤继续保留 ==========
     - name: Load custom feeds
       run: |
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
@@ -83,5 +92,17 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    # ... 后续所有步骤保持不变 ...
-    # 包括 Download package, Compile the firmware 等所有原有步骤
+    - name: Download packages
+      run: cd openwrt && make download -j8
+
+    - name: Compile the firmware
+      run: |
+        cd openwrt
+        echo -e "$(nproc) thread build"
+        make -j$(($(nproc) + 1)) V=s || make -j1 V=s
+
+    - name: Upload firmware
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenWrt_Firmware
+        path: openwrt/bin/targets/*/*
