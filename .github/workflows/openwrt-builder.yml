@@ -27,7 +27,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 240  # Increased timeout
 
     steps:
     - name: Checkout
@@ -110,8 +110,8 @@ jobs:
         cd openwrt
         export CC="ccache gcc"
         export CXX="ccache g++"
-        echo -e "$(nproc) thread build"
-        make -j$(($(nproc) + 1)) V=s || make -j1 V=s
+        echo "Using $(nproc) threads for compilation"
+        make -j$(nproc) V=s
 
     - name: Show ccache statistics
       run: ccache -s
